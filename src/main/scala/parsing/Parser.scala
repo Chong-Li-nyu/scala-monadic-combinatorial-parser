@@ -14,7 +14,7 @@ object Location {
 private[parsing] sealed trait ParseState[+A]
 
 trait Parser[A] {
-  private[parsing] def apply(loc: Location): ParseState[A]
+  protected def apply(loc: Location): ParseState[A]
 
   def parse(loc: Location): Try[A] = ???
   
