@@ -18,7 +18,7 @@ Your final version should satisfy the following minimum requirements:
   support for parsing from a `String` input.
 
 * Use your library to implement a JSON parser
-  (see [json.JSON](blob/master/src/main/scala/json/JSON.scala)) that
+  (see [json.JSON](src/main/scala/json/JSON.scala)) that
   converts a string in the JSON data exchange format into an abstract
   syntax tree representation of that
   data. See [here](https://www.json.org/) for a description of the
