@@ -17,7 +17,8 @@ Your final version should satisfy the following minimum requirements:
 * The parser combinator library should be fully implemented with
   support for parsing from a `String` input.
 
-* Use your library to implement a JSON parser (see [json.JSON]()) that
+* Use your library to implement a JSON parser
+  (see [json.JSON](blob/master/src/main/scala/json/JSON.scala)) that
   converts a string in the JSON data exchange format into an abstract
   syntax tree representation of that
   data. See [here](https://www.json.org/) for a description of the
