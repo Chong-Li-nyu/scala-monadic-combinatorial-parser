@@ -63,13 +63,13 @@ Your final version should satisfy the following minimum requirements:
 * Generalize your parser to work on inputs other than character
   sequences. That is, your parser should work with abstract tokens
   rather than characters. These tokens can represent sequences of
-  characters in a preprocessed input sequence such as keywords,
-  numbers, identifiers, string literals, etc. This way, you can split
-  a parser for a complex language into a *tokenizer* (aka lexer) that
-  parses the input character sequence to produce a token sequence as
-  output, and the actual parser that parses the token sequence to
-  produce, e.g., an abstract syntax tree. This is how complex parsers
-  are typically organized.
+  characters in a preprocessed input sequence. E.g. tokens may
+  represent keywords, numbers, identifiers, string literals, etc. This
+  way, you can split a parser for a complex language into two parts: a
+  *tokenizer* (aka lexer) that parses the input character sequence to
+  produce a token sequence as output, and the actual parser that
+  parses the token sequence to produce, e.g., an abstract syntax
+  tree. This is how complex parsers are typically organized.
 
 * ...
 
