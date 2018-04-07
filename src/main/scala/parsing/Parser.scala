@@ -18,7 +18,7 @@ trait Parser[A] {
 
   def parse(loc: Location): Try[A] = ???
   
-  def orElse[A](p: Parser[A]): Parser[A] = ???
+  def orElse(p: Parser[A]): Parser[A] = ???
 
   def andThen[B](p: Parser[B]): Parser[(A, B)] = 
     for {
@@ -51,7 +51,8 @@ object Parser {
   def digit: Parser[Int] = "[0-9]".r map (_.toInt)
   // def digit: Parser[Int] = ('0' to '9') reduce (_ orElse _) map (_.toString.toInt)
   
-  def digits: Parser[Int] = (digit andThen repeat(digit)) map {case (d, ds) => (d :: ds) reduce (_ * 10 + _) }
+  def digits: Parser[Int] = 
+    (digit andThen repeat(digit)) map { case (d, ds) => (d :: ds) reduce (_ * 10 + _) }
 }
 
 
