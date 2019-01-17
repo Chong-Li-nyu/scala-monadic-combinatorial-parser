@@ -6,15 +6,17 @@ import org.scalatest.FlatSpec
 class ParserSpec extends FlatSpec {
 
   import parsing.Parser._
-
-  /* some ideas for unit tests 
   assert('a'.parse('a'.toString).get === 'a')
+  assert("ab".parse("ab").get === "ab")
+  assert(('a' andThen 'c').parse("ac").get === ('a', 'c'))
+  /* some ideas for unit tests 
+
   
   assert(('a' orElse 'b').parse('a').get === 'a')
 
   assert(('a' orElse 'b').parse('b').get === 'b')
 
-  assert(('a' andThen 'b').parse("ab").get === ('a', 'b'))
+
   
   assert(repeat('a').parse("aaa").get === List('a', 'a', 'a'))
 
