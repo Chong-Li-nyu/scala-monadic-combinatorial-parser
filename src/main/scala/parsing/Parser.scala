@@ -13,8 +13,7 @@ trait Location {
 }
 class StringLocation(val s: String, val pos: Int) extends Location{
   val len = s.length();
-  override def nextChar() : Char = s.charAt(pos) //if we need to make pos increment or not? Not => create a new location
-
+  override def nextChar(): Char = s.charAt(pos) //if we need to make pos increment or not? Not => create a new location
   override def hasNext(): Boolean = (pos < len)
 }
 
@@ -52,7 +51,7 @@ trait Parser[A] {
     loc: Location => {
       this(loc) match {
         case SuccessState(result, matched) => SuccessState(result, matched)
-        case FailureState(exception, consumed, true) => p(new StringLocation(loc.s, loc.pos + consumed)) // p parses in middle of location
+        case FailureState(exception, consumed, true) => p(new StringLocation(loc.s, loc.pos + consumed))
         case FailureState(exception, consumed, false) => p(loc) //not isCommitted means fail and re-parse from start
       }
     }
@@ -89,9 +88,23 @@ trait Parser[A] {
 }
 
 object Parser {
-  def repeat[A](p: Parser[A]): Parser[List[A]] = ???
+  def repeat[A](p: Parser[A]): Parser[List[A]] = {
+    val repeatParser: Parser[List[A]] = for {
+      a <- p
+      b <- repeat(p)
+    } yield (a :: b)
+    repeatParser orElse (_ => SuccessState[List[A]](Nil, 0))
+  }
 
-  def repeatN[A](n: Int)(p: Parser[A]): Parser[List[A]] = ???
+  def repeatN[A](n: Int)(p: Parser[A]): Parser[List[A]] = {
+    if (n == 0)
+      _ => SuccessState(Nil,0);
+    else
+      for{
+        a <- p
+        b <- repeatN(n-1)(p)
+      }yield (a::b)
+  }
 
   /*
   The attempt need to return a FailureState of containing consumed part, for restoring the failure location.pos to
@@ -112,10 +125,10 @@ object Parser {
 
   implicit def char(c: Char): Parser[Char] = {
     loc: Location => {
-      if (c == loc.nextChar){
-        SuccessState[Char](c, 1)
-      } else{
-        FailureState[Char](new Exception(s"Character ${c} fail parsing at position:${loc.pos} of ${loc.s}"), 0) 
+      if (!loc.hasNext()) FailureState(new Exception("No more input sequence"), 0)
+      else {
+        if (c == loc.nextChar()) SuccessState[Char](c, 1)
+        else FailureState[Char](new Exception(s"Character ${c} fail parsing at position:${loc.pos} of ${loc.s}"), 0)
         //because parser unmatches any char should consume nothing, consumed = 0
         // ((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab") succeed
         //first parser does not consume any part of the input
@@ -124,20 +137,17 @@ object Parser {
   }
   
   implicit def string(s: String): Parser[String] = {
-    loc: Location => {
-      if (s.isEmpty()) {
-          SuccessState("", 0)
+    s match {
+      case "" => (_ => SuccessState("", 0))
+      case _ => {
+        for {
+          head <- char(s.charAt(0)) //Why here don't need to check location.hasNext? Because the parser[Char] already does that.
+          cons <- string(s.substring(1))
+        } yield (head.toString.concat(cons))
       }
-      if (!loc.hasNext && !s.isEmpty) {
-        FailureState(new Exception("Input sequence is not long enough."), 0)
-      }
-      val x = s.charAt(0);
-      val xs = s.substring(1);
-      val xsParser: Parser[String] = if (xs.isEmpty()) (_ => SuccessState("", 0)) else string(xs);
-      val combinedParser: Parser[(Char, String)] = x andThen xsParser;
-      combinedParser.map(pair => pair._1.toString().concat(pair._2))(loc)
     }
   }
+
   
   implicit def regex(r: Regex): Parser[String] = ???
 
