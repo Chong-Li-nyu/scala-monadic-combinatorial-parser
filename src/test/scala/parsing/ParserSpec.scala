@@ -7,14 +7,19 @@ class ParserSpec extends FlatSpec {
 
   import parsing.Parser._
   assert('a'.parse('a'.toString).get === 'a')
+
   assert("ab".parse("ab").get === "ab")
+
   assert(('a' andThen 'c').parse("ac").get === ('a', 'c'))
+
+  assert(('a' orElse 'b').parse('a').get === 'a')
+  assert(('a' orElse 'b').parse('b').get === 'b')
+  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === ("cd","ab"))
+//  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === "cdab")
   /* some ideas for unit tests 
 
   
-  assert(('a' orElse 'b').parse('a').get === 'a')
 
-  assert(('a' orElse 'b').parse('b').get === 'b')
 
 
   
