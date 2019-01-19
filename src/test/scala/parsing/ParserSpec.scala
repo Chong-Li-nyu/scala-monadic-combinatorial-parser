@@ -6,22 +6,54 @@ import org.scalatest.FlatSpec
 class ParserSpec extends FlatSpec {
 
   import parsing.Parser._
-  assert('a'.parse('a'.toString).get === 'a')
+  import parsing.Location._
+  "Parser of empty string" should "fail parsing any non-empty string" in{
+    assert(
+      Parser.string("").parse("abc").isFailure
+    )
+  }
+  "Parser[Char] should fail more than one character" should "fail to parse an input of more than one character" in{
+    assert('a'.parse("ab").isFailure)
+    assert('a'.parse(" a").isFailure)
+  }
+  "Parsers original tests" should "all pass" in {
+    assert('a'.parse('a'.toString).get === 'a')
+    assert("ab".parse("ab").get === "ab")
 
-  assert("ab".parse("ab").get === "ab")
+    assert('a'.parse("ab").isFailure)
+    assert("ab".parse("a").isFailure)
+    assert("ab".parse("abc").isFailure)
 
-  assert(('a' andThen 'c').parse("ac").get === ('a', 'c'))
+    assert(('a' orElse 'b').parse('b'.toString).get === 'b')
+    assert(repeat('a').parse("aaa").get === List('a', 'a', 'a'))
 
-  assert(('a' orElse 'b').parse('a').get === 'a')
-  assert(('a' orElse 'b').parse('b').get === 'b')
-  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === ("cd","ab"))
-//  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === "cdab")
-  /* some ideas for unit tests 
+    assert(repeatN(3)('a').parse("aaa").get === List('a', 'a', 'a'))
+    assert((repeat('a') map (_.size)).parse("aaa").get === 3)
 
-  
+    assert((('a' andThen 'b') orElse ('a' andThen 'a')).parse("aa").isFailure === true)
+
+    assert((attempt('a' andThen 'a') orElse ('a' andThen 'b')).parse("ab").get === ('a', 'b'))
+    //  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === "cdab")
+  }
 
 
+  "Two parsers" should "work parsing combined string" in {
+    assert(('a' andThen 'c').parse("ac").get === ('a', 'c'))
+    assert(("ac" andThen Parser.string("")).parse("ac").get === ("ac",""))
+    assert(("a" andThen char('c')).parse("ac").get === ("a", 'c'))
+  }
+  "OrElse" should "succeed if left parser doesn't consume anything" in {
+    assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === ("cd","ab"))
+  }
+  "Repeat parser" should "parse empty string successfully" in {
+    assert( repeat("ab").parse("").isSuccess === true )
+  }
+  "Repeat parser" should "succeed combined with andThen" in {
+    assert((repeat("a") andThen char('b')).parse(fromString("aaab")).isSuccess === true)
+  }
 
+
+  /* some ideas for unit tests
   
   assert(repeat('a').parse("aaa").get === List('a', 'a', 'a'))
 
@@ -32,5 +64,10 @@ class ParserSpec extends FlatSpec {
   assert((digit flatMap (repeatN(_)('a'))).parse("3aaa").get === List('a', 'a', 'a'))
 
   assert((attempt('a' andThen 'a') orElse ('a' andThen 'b')).parse("ab").get === ('a', 'b'))
+
+  assert((digit flatMap (repeatN(_)('a'))).parse("3aaa").get === List('a', 'a', 'a'))
+
+  assert(('3'.map(_.toInt) flatMap (repeatN(_)('a'))).parse("3aaa").get === List('a', 'a', 'a'))
+
   */
 }
