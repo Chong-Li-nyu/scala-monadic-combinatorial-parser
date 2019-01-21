@@ -125,13 +125,18 @@ object Parser {
   }
 
   def repeatN[A](n: Int)(p: Parser[A]): Parser[List[A]] = {
-    if (n == 0)
-      _ => SuccessState(Nil,0)
-    else
-      for{
-        a <- p
-        b <- repeatN(n-1)(p)
-      }yield (a::b)
+    loc => {
+      if (n == 0){
+        if (!loc.hasNext()) SuccessState(Nil, 0) else FailureState(Success(Nil), 0)
+      }
+      else {
+        val cp = for {
+          a <- p
+          b <- repeatN(n - 1)(p)
+        } yield (a :: b)
+        cp(loc)
+      }
+    }
   }
 
   /*

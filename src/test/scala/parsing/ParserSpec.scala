@@ -55,6 +55,12 @@ class ParserSpec extends FlatSpec {
     assert((digit flatMap (repeatN(_)('a'))).parse("3aaa").get === List('a', 'a', 'a'))
   }
 
+  "repeatN paring not enough N" should "fail when" in {
+    assert(repeatN(2)('a').parse("aaa").isFailure)
+  }
+  "Digit parser" should "throw exception when parsing 0123a" in{
+    assert("[0-9]*".r.parse("0123a").isFailure)
+  }
 
   /* some ideas for unit tests
   
