@@ -3,6 +3,7 @@ package parsing
 import scala.util.{Failure, Success, Try}
 import scala.language.implicitConversions
 import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
 
 trait Location {
   val pos: Int
@@ -36,6 +37,10 @@ case class SuccessState[+A](result: A, consumed: Int) extends ParseState[A] // Y
 case class FailureState[+A](tempResult: Try[A], consumed: Int, isCommitted: Boolean = true) extends ParseState[A] //uncommited will be a partial match amount
 // See flatmap for more detail how to determine consumed
 /*
+Considering a fucntion which is subtype of another function, its return value should be more childish type,
+then it can be used as subtype the Function returning Parent class, because its return value can be upcast to parent
+function type
+
 trait Function1[-T, +U] {
   def apply(x: T): U
 }
@@ -73,7 +78,9 @@ trait Parser[A] {
       a <- this
       b <- p
     } yield (a,b)
-  
+  //this flatMap { a => pb map { b => (a, b) } }
+
+
   def map[B](f: A => B): Parser[B] = {
     loc: Location => {
       this(loc) match{
@@ -81,7 +88,7 @@ trait Parser[A] {
         case FailureState(tempA, consumed, isCommitted) => {
           val tempB = for{
             x <- tempA
-          } yield f(x)
+          } yield f(x) //good monadic semantic to process both Success and Failure
           FailureState(tempB, consumed, isCommitted)
         }
       }
@@ -93,6 +100,7 @@ trait Parser[A] {
       val (resultA, consumedA) =  this(loc) match {
         case SuccessState(result, consumed) => (Success(result), consumed)
         case FailureState(tempResult, consumed, isCommitted) => (tempResult, consumed)
+          //because FailureState may represents this(loc) get fully matched parsing middle result, but not fully consume loc.
       }
       resultA match {
         case Failure(ex) => FailureState(Failure(ex), consumedA)
@@ -139,7 +147,15 @@ object Parser {
     }
   }
 
-  def label[A](msg: String)(p: Parser[A]): Parser[A] = ???
+  def label[A](msg: String)(p: Parser[A]): Parser[A] = {
+    loc: Location => {
+      p(loc) match {
+        case FailureState(_: Failure[A], consumed, _) =>
+          FailureState(Failure(new Exception(msg)), consumed, false)
+        case resultState: ParseState[A] => resultState
+      }
+    }
+  }
 
   def tag[A](msg: String)(p: Parser[A]): Parser[A] = ???
 
@@ -179,7 +195,19 @@ object Parser {
   }
 
   
-  implicit def regex(r: Regex): Parser[String] = ???
+  implicit def regex(r: Regex): Parser[String] = {
+    loc:Location => {
+      r.findPrefixMatchOf(loc.s.substring(loc.pos)) match {
+        case Some(matchResult: Match) => { //def end(i: Int): Int The index following the last matched character in group i.
+          if (!loc.advanceBy(matchResult.end).hasNext) SuccessState(matchResult.matched, matchResult.end)
+          else FailureState(Success(matchResult.matched.toString), matchResult.end)
+        }
+        case None => {
+          FailureState(Failure(new Exception("Regex matching failed")), 0)
+        }
+      }
+    }
+  }
 
   def digit: Parser[Int] = "[0-9]".r map (_.toInt)
   // def digit: Parser[Int] = ('0' to '9') reduce (_ orElse _) map (_.toString.toInt)

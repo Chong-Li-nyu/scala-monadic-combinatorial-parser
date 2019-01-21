@@ -33,7 +33,6 @@ class ParserSpec extends FlatSpec {
     assert((('a' andThen 'b') orElse ('a' andThen 'a')).parse("aa").isFailure === true)
 
     assert((attempt('a' andThen 'a') orElse ('a' andThen 'b')).parse("ab").get === ('a', 'b'))
-    //  assert(((string("ab") andThen string("ba")) orElse (string("cd") andThen string("ab"))).parse("cdab").get === "cdab")
   }
 
 
@@ -50,6 +49,10 @@ class ParserSpec extends FlatSpec {
   }
   "Repeat parser" should "succeed combined with andThen" in {
     assert((repeat("a") andThen char('b')).parse(fromString("aaab")).isSuccess === true)
+  }
+
+  "Regex parser digit repeat" should "parse 3aaa" in {
+    assert((digit flatMap (repeatN(_)('a'))).parse("3aaa").get === List('a', 'a', 'a'))
   }
 
 
