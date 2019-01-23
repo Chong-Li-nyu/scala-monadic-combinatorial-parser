@@ -65,7 +65,7 @@ trait Parser[A] {
     loc: Location => {
       this(loc) match {
         case SuccessState(result, consumed) => SuccessState(result, consumed)
-        case FailureState(tempA, consumed, false) => p(loc) //attemp make it uncommitted, parse loc again.
+        case FailureState(tempA, consumedA, false) => p(loc)  //attemp make it uncommitted, parse loc again.
         case FailureState(tempA, consumed, true) =>{
           if(consumed == 0) p(loc) else FailureState(tempA, consumed/*, true*/)
         }
@@ -73,7 +73,7 @@ trait Parser[A] {
     }
   }
 
-  def andThen[B](p: Parser[B]): Parser[(A, B)] =
+  def andThen[B](p: =>Parser[B]): Parser[(A, B)] = //the p type is a call-by-name parameter, Otherwise, you will likely end up in an infinite recursion when the parser for `repeat` is constructed
     for {
       a <- this
       b <- p
@@ -99,15 +99,15 @@ trait Parser[A] {
     loc: Location => {
       val (resultA, consumedA) =  this(loc) match {
         case SuccessState(result, consumed) => (Success(result), consumed)
-        case FailureState(tempResult, consumed, isCommitted) => (tempResult, consumed)
+        case FailureState(tempResult, consumed, _:Boolean) => (tempResult, consumed)
           //because FailureState may represents this(loc) get fully matched parsing middle result, but not fully consume loc.
       }
       resultA match {
         case Failure(ex) => FailureState(Failure(ex), consumedA)
-        case Success(result)=>{
+        case Success(result)=> {
           f(result)(loc.advanceBy(consumedA)) match {
             case SuccessState(resultB, consumedB) => SuccessState(resultB, consumedA + consumedB)
-            case FailureState(tempResult, consumedB, isCommitted) => FailureState(tempResult, consumedA + consumedB)
+            case FailureState(tempResult, consumedB, isCommitted) => FailureState(tempResult, consumedA + consumedB, isCommitted)
           }
         }
       }
@@ -115,13 +115,30 @@ trait Parser[A] {
   }
 }
 
+
 object Parser {
-  def repeat[A](p: Parser[A]): Parser[List[A]] = {
-    val repeatParser: Parser[List[A]] = for {
-      a <- p
-      b <- repeat(p)
-    } yield (a :: b)
-    repeatParser orElse (_ => SuccessState[List[A]](Nil, 0))
+
+  /* Idea:
+   */
+  def repeat[A](p: =>Parser[A]): Parser[List[A]] = { //call-by-name lazy evaluation
+    loc:Location => {
+      if(!loc.hasNext) SuccessState[List[A]](Nil, 0) //explicitly specify the end condition, otherwise infinite loop
+      else {
+        val successParser: Parser[List[A]] = (_: Location) => SuccessState[List[A]](Nil, 0);
+        val repeatParser: Parser[List[A]] = for {
+          a <- attempt(p) //when this attemp(p) fails, it will not consume any loc. repeatParser will jump out and go to orElse successParser
+          b <- repeat(p)
+        } yield (a :: b)
+        //      lazy val repeatParser = (attempt(p) andThen repeat(p)).map( (p:(A, List[A]))=> p._1::p._2 )
+        (repeatParser orElse successParser) (loc) match { //(repeatParser orElse successParser) (loc) always returns SuccessState
+          case SuccessState(result, consumed) => {
+            if (!loc.advanceBy(consumed).hasNext()) SuccessState(result, consumed)
+            else FailureState(Success(result), consumed)
+          }
+          case fs: FailureState[List[A]] => fs
+        }
+      }
+    }
   }
 
   def repeatN[A](n: Int)(p: Parser[A]): Parser[List[A]] = {
@@ -134,7 +151,7 @@ object Parser {
           a <- p
           b <- repeatN(n - 1)(p)
         } yield (a :: b)
-        cp(loc)
+        cp(loc) //lack failure case
       }
     }
   }
