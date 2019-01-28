@@ -81,7 +81,9 @@ class ParserSpec extends FlatSpec {
     assert(repeat(repeat('b') andThen 'a').parse("bbbaa").isSuccess) // [([b,b,b],a), ([],a)]
     println(repeat(repeat('b') andThen 'a').parse("bbbaa").get)
     assert( repeat(rpb andThen rpa).parse("bbbaabba").isSuccess )
-//    assert(repeat(repeat('b') andThen repeat('a')).parse("bbbaabbabbb").isSuccess)
+
+    assert(repeat(repeat('b') andThen repeat('a')).parse("bbbaabbabbb").isSuccess)
+    println(repeat(rpb andThen rpa).parse("bbbaabbabbb" ).get); //List((List(b, b, b),List(a, a)), (List(b, b),List(a)), (List(b, b, b),List()))
   }
   /* some ideas for unit tests
   
